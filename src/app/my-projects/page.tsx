@@ -333,7 +333,7 @@ export default function MyProjectsPage() {
             ))}
           </div>
         ) : (
-          <Card>
+          <Card className="px-2">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -535,7 +535,7 @@ export default function MyProjectsPage() {
                 title: editingProject.title,
                 description: editingProject.description,
                 githubUrl: editingProject.githubUrl,
-                websiteUrl: editingProject.websiteUrl,
+                websiteUrl: editingProject.websiteUrl || undefined,
                 categoryIds: editingProject.categories.map((c) => c.id),
               }}
               onSubmit={handleEditSubmit}

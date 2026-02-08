@@ -1,6 +1,12 @@
 import Link from "next/link";
 
-import { ExternalLink, Github } from "lucide-react";
+import {
+  ExternalLink,
+  Github,
+  MessageSquare,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,47 +34,69 @@ export function ProjectCard({
 
   return (
     <Card className="group hover:border-primary/30 hover:shadow-primary/5 flex flex-col gap-2 overflow-hidden border py-0 transition-all duration-200 hover:shadow-lg">
-      <CardHeader className="pt-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-foreground group-hover:text-primary truncate text-base font-semibold transition-colors">
-              {project.title}
-            </h3>
+      <Link href={`/projects/${project.slug}`} className="flex flex-1 flex-col">
+        <CardHeader className="pt-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-foreground group-hover:text-primary truncate text-base font-semibold transition-colors">
+                {project.title}
+              </h3>
+            </div>
+            {showStatus && <StatusBadge status={project.status} />}
           </div>
-          {showStatus && <StatusBadge status={project.status} />}
-        </div>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="flex-1 pb-4">
-        <p className="text-muted-foreground line-clamp-2 text-sm leading-relaxed">
-          {project.description}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {project.categories.map((cat) => (
-            <Badge
-              key={cat.id}
-              variant="secondary"
-              className={`text-xs font-medium ${cat.color}`}
-            >
-              {cat.name}
-            </Badge>
-          ))}
-        </div>
-      </CardContent>
+        <CardContent className="flex-1 pb-4">
+          <p className="text-muted-foreground line-clamp-2 text-sm leading-relaxed">
+            {project.description}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {project.categories.map((cat) => (
+              <Badge
+                key={cat.id}
+                variant="secondary"
+                className={`text-xs font-medium ${cat.color}`}
+              >
+                {cat.name}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Link>
 
       <CardFooter className="bg-muted/30 px-5 py-3">
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-6 w-6">
-              <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-muted-foreground text-xs font-medium">
-              {project.authorName}
-            </span>
+          <div className="flex items-center gap-3">
+            {project.stats && (
+              <div className="flex items-center gap-2">
+                <div className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium">
+                  <ThumbsUp className="h-3 w-3" />
+                  <span>{project.stats.upvotes}</span>
+                </div>
+                <div className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium">
+                  <ThumbsDown className="h-3 w-3" />
+                  <span>{project.stats.downvotes}</span>
+                </div>
+                {project.stats.commentCount > 0 && (
+                  <div className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium">
+                    <MessageSquare className="h-3 w-3" />
+                    <span>{project.stats.commentCount}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 border-l pl-3">
+              <Avatar className="h-5 w-5">
+                <AvatarFallback className="bg-primary/10 text-primary text-[8px] font-bold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-muted-foreground max-w-[80px] truncate text-[10px] font-medium">
+                {project.authorName}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Link
               href={project.githubUrl}
               target="_blank"
