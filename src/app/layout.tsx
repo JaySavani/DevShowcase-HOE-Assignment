@@ -3,9 +3,11 @@ import React from "react";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
+import { ChatBot } from "@/components/chat-bot";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
 
@@ -38,6 +40,8 @@ export default function RootLayout({
           <AuthProvider>
             <SiteHeader />
             <main>{children}</main>
+            <ChatBot />
+            <Toaster />
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -116,7 +116,7 @@ export default async function ProjectDetailsPage({
 
         {/* Sidebar Info */}
         <div className="space-y-6">
-          <Card>
+          <Card className="gap-2">
             <CardHeader>
               <CardTitle className="text-muted-foreground text-sm font-medium tracking-wider uppercase">
                 About the Author
@@ -137,7 +137,7 @@ export default async function ProjectDetailsPage({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="gap-2">
             <CardHeader>
               <CardTitle className="text-muted-foreground text-sm font-medium tracking-wider uppercase">
                 Project Details
@@ -159,12 +159,6 @@ export default async function ProjectDetailsPage({
                     addSuffix: true,
                   })}
                 </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs">Status</p>
-                <Badge variant="outline" className="mt-1 capitalize">
-                  {project.status}
-                </Badge>
               </div>
             </CardContent>
           </Card>

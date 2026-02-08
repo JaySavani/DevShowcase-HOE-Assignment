@@ -1,5 +1,6 @@
 "use server";
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
@@ -225,5 +226,104 @@ export async function getProjectBySlug(slug: string) {
   } catch (error) {
     console.error("Fetch project details error:", error);
     return { success: false, error: "Failed to fetch project details" };
+  }
+}
+
+export async function searchProjectSolutions(problem: string) {
+  try {
+    if (!problem.trim()) return { success: true, data: [] };
+
+    const projects = await prisma.project.findMany({
+      where: { status: "APPROVED" },
+      include: {
+        categories: { include: { category: true } },
+      },
+    });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (apiKey) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const prompt = `
+          You are a technical assistant for a project showcase platform.
+          A user is describing a problem: "${problem}"
+          
+          Here are some available projects:
+          ${projects.map((p) => `ID: ${p.id} | Title: ${p.title} | Description: ${p.description} | Categories: ${p.categories.map((c) => c.category.name).join(", ")}`).join("\n")}
+          
+          Based on the user's problem, identify the top 3 projects that can provide a solution or technical reference.
+          Return ONLY a JSON array of strings (the Project IDs), nothing else.
+        `;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        console.log("Response Text:", responseText);
+        const cleanedJson = responseText.replace(/```json|```/g, "").trim();
+        console.log("Cleaned JSON:", cleanedJson);
+        const recommendedIds: string[] = JSON.parse(cleanedJson);
+        console.log("Recommended IDs:", recommendedIds);
+
+        const recommendedProjects = recommendedIds
+          .map((id) => projects.find((p) => p.id === id))
+          .filter((p): p is NonNullable<typeof p> => !!p)
+          .map((p) => ({
+            id: p.id,
+            title: p.title,
+            slug: p.slug,
+            description: p.description,
+            score: 100,
+          }));
+
+        if (recommendedProjects.length > 0) {
+          return { success: true, data: recommendedProjects };
+        }
+      } catch (aiError) {
+        console.error(
+          "Gemini search error, falling back to keywords:",
+          aiError
+        );
+      }
+    }
+
+    // Fallback ranking algorithm
+    const terms = problem
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length > 2);
+
+    const ranked = projects
+      .map((p) => {
+        let score = 0;
+
+        terms.forEach((term) => {
+          if (p.title.toLowerCase().includes(term)) score += 10;
+          if (p.description.toLowerCase().includes(term)) score += 5;
+          if (
+            p.categories.some((c) =>
+              c.category.name.toLowerCase().includes(term)
+            )
+          )
+            score += 8;
+        });
+
+        return {
+          id: p.id,
+          title: p.title,
+          slug: p.slug,
+          description: p.description,
+          score,
+        };
+      })
+      .filter((p) => p.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+    return { success: true, data: ranked };
+  } catch (error) {
+    console.error("Search solutions error:", error);
+    return { success: false, error: "Failed to find solutions" };
   }
 }
