@@ -6,7 +6,24 @@ export const authConfigEdge = {
     signIn: "/sign-in",
   },
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+        token.sub = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token.sub && session.user) {
+        session.user.id = token.sub;
+      }
+      if (token.role && session.user) {
+        session.user.role = token.role as "USER" | "ADMIN";
+      }
+      return session;
+    },
     authorized({ auth, request: { nextUrl } }) {
+      console.log("auth in authorized", auth);
       const isLoggedIn = !!auth?.user;
 
       const protectedRoutes = ["/submit", "/my-projects"];
@@ -33,8 +50,10 @@ export const authConfigEdge = {
 
       if (isLoggedIn && isAdminRoute) {
         if (auth?.user?.role === "ADMIN") {
+          console.log("Admin route");
           return true;
         }
+        console.log("Not admin");
         return Response.redirect(new URL("/", nextUrl));
       }
 
