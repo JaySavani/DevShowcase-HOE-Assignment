@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, X } from "lucide-react";
+import { toast } from "sonner";
 
+import { getCategories } from "@/actions/project-action";
 import { Badge } from "@/components/ui/badge";
-import { categories } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import type { Category } from "@/types/project";
 
 interface CategoryMultiSelectProps {
   value: string[];
@@ -20,7 +22,27 @@ export function CategoryMultiSelect({
   error,
 }: CategoryMultiSelectProps) {
   const [open, setOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const result = await getCategories();
+        if (result.success && result.data) {
+          setCategories(result.data);
+        } else {
+          toast.error("Failed to load categories");
+        }
+      } catch {
+        toast.error("An error occurred while loading categories");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -54,15 +76,23 @@ export function CategoryMultiSelect({
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        disabled={isLoading}
         className={cn(
           "ring-offset-background flex min-h-10 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm transition-colors",
           "focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-hidden",
           error ? "border-destructive" : "border-input",
-          "hover:bg-muted/50"
+          isLoading ? "cursor-not-allowed opacity-50" : "hover:bg-muted/50"
         )}
       >
         <div className="flex flex-1 flex-wrap gap-1">
-          {selectedCategories.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-muted-foreground">
+                Loading categories...
+              </span>
+            </div>
+          ) : selectedCategories.length > 0 ? (
             selectedCategories.map((cat) => (
               <Badge
                 key={cat.id}

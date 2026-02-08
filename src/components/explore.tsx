@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Loader2, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
@@ -33,31 +33,59 @@ const ITEMS_PER_PAGE = 6;
 export default function ExplorePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [pagination, setPagination] = useState({
+    totalCount: 0,
+    totalPages: 0,
+    currentPage: 1,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    async function fetchCategoriesData() {
+      try {
+        const res = await getCategories();
+        if (res.success && res.data) {
+          setCategories(res.data);
+        }
+      } catch {
+        toast.error("Failed to fetch categories");
+      }
+    }
+    fetchCategoriesData();
+  }, []);
+
+  useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [projectsRes, categoriesRes] = await Promise.all([
-          getApprovedProjects(),
-          getCategories(),
-        ]);
+        const res = await getApprovedProjects({
+          search: debouncedSearch,
+          categoryIds: selectedCategories,
+          sortBy,
+          page: currentPage,
+          pageSize: ITEMS_PER_PAGE,
+        });
 
-        if (projectsRes.success && projectsRes.data) {
-          setProjects(projectsRes.data);
-        } else if (projectsRes.error) {
-          toast.error(projectsRes.error);
-        }
-
-        if (categoriesRes.success && categoriesRes.data) {
-          setCategories(categoriesRes.data);
-        } else if (categoriesRes.error) {
-          toast.error(categoriesRes.error);
+        if (res.success && res.data) {
+          setProjects(res.data);
+          if (res.pagination) {
+            setPagination(res.pagination);
+          }
+        } else if (res.error) {
+          toast.error(res.error);
         }
       } catch {
         toast.error("An unexpected error occurred while fetching data");
@@ -67,49 +95,10 @@ export default function ExplorePage() {
     }
 
     fetchData();
-  }, []);
+  }, [debouncedSearch, selectedCategories, sortBy, currentPage]);
 
-  const filteredProjects = useMemo(() => {
-    let result = [...projects];
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.authorName.toLowerCase().includes(q)
-      );
-    }
-
-    if (selectedCategories.length > 0) {
-      result = result.filter((p) =>
-        p.categories.some((c) => selectedCategories.includes(c.id))
-      );
-    }
-
-    if (sortBy === "newest") {
-      result.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    } else if (sortBy === "oldest") {
-      result.sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-    } else if (sortBy === "alphabetical") {
-      result.sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    return result;
-  }, [search, selectedCategories, sortBy, projects]);
-
-  const totalPages = Math.ceil(filteredProjects.length / ITEMS_PER_PAGE);
-  const paginatedProjects = filteredProjects.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const totalPages = pagination.totalPages;
+  const paginatedProjects = projects;
 
   const toggleCategory = (id: string) => {
     setSelectedCategories((prev) =>
@@ -219,11 +208,11 @@ export default function ExplorePage() {
           <p className="text-muted-foreground text-sm">
             Showing{" "}
             <span className="text-foreground font-semibold">
-              {paginatedProjects.length}
+              {projects.length}
             </span>{" "}
             of{" "}
             <span className="text-foreground font-semibold">
-              {filteredProjects.length}
+              {pagination.totalCount}
             </span>{" "}
             projects
           </p>

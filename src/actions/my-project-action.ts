@@ -2,33 +2,61 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ProjectStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { ProjectFormValues, projectSchema } from "@/lib/schemas";
 
-export async function getMyProjects() {
+export async function getMyProjects({
+  search = "",
+  status = "all",
+  page = 1,
+  pageSize = 6,
+} = {}) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const projects = await prisma.project.findMany({
-      where: {
-        authorId: session.user.id,
-      },
-      include: {
-        author: true,
-        categories: {
-          include: {
-            category: true,
+    const skip = (page - 1) * pageSize;
+
+    const where: Prisma.ProjectWhereInput = {
+      authorId: session.user.id,
+    };
+
+    if (search.trim()) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (status !== "all") {
+      where.status = status.toUpperCase() as ProjectStatus;
+    }
+
+    const [projects, totalCount] = await Promise.all([
+      prisma.project.findMany({
+        where,
+        include: {
+          author: true,
+          categories: {
+            include: {
+              category: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip,
+        take: pageSize,
+      }),
+      prisma.project.count({ where }),
+    ]);
 
     // Transform to match the UI expectation if needed
     const formattedProjects = projects.map((p) => ({
@@ -42,7 +70,7 @@ export async function getMyProjects() {
       updatedAt: p.updatedAt.toISOString(),
       authorName: p.author.fullName,
       authorEmail: p.author.email,
-      authorAvatar: "", // Add if needed
+      authorAvatar: "",
       categories: p.categories.map((pc) => ({
         id: pc.category.id,
         name: pc.category.name,
@@ -50,7 +78,15 @@ export async function getMyProjects() {
       })),
     }));
 
-    return { success: true, data: formattedProjects };
+    return {
+      success: true,
+      data: formattedProjects,
+      pagination: {
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+        currentPage: page,
+      },
+    };
   } catch (error) {
     console.error("Fetch my projects error:", error);
     return { success: false, error: "Failed to fetch projects" };

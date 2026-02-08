@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ProjectStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import {
@@ -17,30 +20,65 @@ async function isAdmin() {
 }
 
 // PROJECTS
-export async function getAllProjects() {
+export async function getAllProjects({
+  search = "",
+  status = "all",
+  categoryId = "all",
+  page = 1,
+  pageSize = 8,
+} = {}) {
   if (!(await isAdmin())) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const projects = await prisma.project.findMany({
-      include: {
-        author: {
-          select: {
-            fullName: true,
-            email: true,
+    const skip = (page - 1) * pageSize;
+
+    const where: Prisma.ProjectWhereInput = {};
+
+    if (search.trim()) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { author: { fullName: { contains: search, mode: "insensitive" } } },
+      ];
+    }
+
+    if (status !== "all") {
+      where.status = status.toUpperCase() as ProjectStatus;
+    }
+
+    if (categoryId !== "all") {
+      where.categories = {
+        some: {
+          categoryId,
+        },
+      };
+    }
+
+    const [projects, totalCount] = await Promise.all([
+      prisma.project.findMany({
+        where,
+        include: {
+          author: {
+            select: {
+              fullName: true,
+              email: true,
+            },
+          },
+          categories: {
+            include: {
+              category: true,
+            },
           },
         },
-        categories: {
-          include: {
-            category: true,
-          },
+        orderBy: {
+          createdAt: "desc",
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        skip,
+        take: pageSize,
+      }),
+      prisma.project.count({ where }),
+    ]);
 
     const formattedProjects = projects.map((p) => ({
       id: p.id,
@@ -60,7 +98,15 @@ export async function getAllProjects() {
       })),
     }));
 
-    return { success: true, data: formattedProjects };
+    return {
+      success: true,
+      data: formattedProjects,
+      pagination: {
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+        currentPage: page,
+      },
+    };
   } catch (error) {
     console.error("Fetch all projects error:", error);
     return { success: false, error: "Failed to fetch projects" };

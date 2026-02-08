@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import Link from "next/link";
 
@@ -68,9 +68,15 @@ const ITEMS_PER_PAGE = 8;
 export function AdminProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [pagination, setPagination] = useState({
+    totalCount: 0,
+    totalPages: 0,
+    currentPage: 1,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,19 +86,32 @@ export function AdminProjects() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [projectsRes, categoriesRes] = await Promise.all([
-        getAllProjects(),
+        getAllProjects({
+          search: debouncedSearch,
+          status: statusFilter,
+          categoryId: categoryFilter,
+          page: currentPage,
+          pageSize: ITEMS_PER_PAGE,
+        }),
         getAdminCategories(),
       ]);
 
       if (projectsRes.success && projectsRes.data) {
         setProjects(projectsRes.data as Project[]);
+        if (projectsRes.pagination) {
+          setPagination(projectsRes.pagination);
+        }
       }
       if (categoriesRes.success && categoriesRes.data) {
         setCategories(categoriesRes.data as Category[]);
@@ -102,27 +121,14 @@ export function AdminProjects() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [debouncedSearch, statusFilter, categoryFilter, currentPage]);
 
-  const filteredProjects = useMemo(() => {
-    return projects.filter((p) => {
-      const matchesSearch =
-        !search.trim() ||
-        p.title.toLowerCase().includes(search.toLowerCase()) ||
-        p.authorName.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-      const matchesCategory =
-        categoryFilter === "all" ||
-        p.categories.some((c) => c.id === categoryFilter);
-      return matchesSearch && matchesStatus && matchesCategory;
-    });
-  }, [projects, search, statusFilter, categoryFilter]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const totalPages = Math.ceil(filteredProjects.length / ITEMS_PER_PAGE);
-  const paginatedProjects = filteredProjects.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const paginatedProjects = projects;
+  const totalPages = pagination.totalPages;
 
   const handleEditSubmit = async (data: ProjectFormValues) => {
     if (!editingProject) return;
@@ -175,7 +181,6 @@ export function AdminProjects() {
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              setCurrentPage(1);
             }}
             className="pl-9"
           />
@@ -224,9 +229,9 @@ export function AdminProjects() {
       {!isLoading && (
         <p className="text-muted-foreground text-sm">
           <span className="text-foreground font-medium">
-            {filteredProjects.length}
+            {pagination.totalCount}
           </span>{" "}
-          project{filteredProjects.length !== 1 ? "s" : ""} found
+          project{pagination.totalCount !== 1 ? "s" : ""} found
         </p>
       )}
 
@@ -471,7 +476,7 @@ export function AdminProjects() {
               ? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
               disabled={isSubmitting}

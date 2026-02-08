@@ -377,7 +377,7 @@ export function AdminCategories() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
               disabled={isSubmitting}
@@ -417,7 +417,7 @@ export function AdminCategories() {
               category? Projects using this category will not be deleted.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
               disabled={isSubmitting}

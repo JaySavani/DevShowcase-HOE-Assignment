@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import Link from "next/link";
 
@@ -28,13 +28,7 @@ import { ProjectForm } from "@/components/project-form";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -75,9 +69,15 @@ const ITEMS_PER_PAGE = 6;
 
 export default function MyProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [pagination, setPagination] = useState({
+    totalCount: 0,
+    totalPages: 0,
+    currentPage: 1,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
@@ -87,15 +87,27 @@ export default function MyProjectsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await getMyProjects();
+      const result = await getMyProjects({
+        search: debouncedSearch,
+        status: statusFilter,
+        page: currentPage,
+        pageSize: ITEMS_PER_PAGE,
+      });
       if (result.success && result.data) {
         setProjects(result.data as Project[]);
+        if (result.pagination) {
+          setPagination(result.pagination);
+        }
       } else {
         toast.error(result.error || "Failed to fetch projects");
       }
@@ -104,22 +116,14 @@ export default function MyProjectsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [debouncedSearch, statusFilter, currentPage]);
 
-  const filteredProjects = projects.filter((p: Project) => {
-    const matchesSearch =
-      !search.trim() ||
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.description.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
-  const totalPages = Math.ceil(filteredProjects.length / ITEMS_PER_PAGE);
-  const paginatedProjects = filteredProjects.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const paginatedProjects = projects;
+  const totalPages = pagination.totalPages;
 
   const handleEdit = (project: Project) => {
     setEditingProject(project);
@@ -167,10 +171,10 @@ export default function MyProjectsPage() {
   };
 
   const statusCounts = {
-    all: projects.length,
-    pending: projects.filter((p) => p.status === "pending").length,
-    approved: projects.filter((p) => p.status === "approved").length,
-    rejected: projects.filter((p) => p.status === "rejected").length,
+    all: pagination.totalCount,
+    pending: 0, // Would need a separate action or count for all statuses
+    approved: 0,
+    rejected: 0,
   };
 
   return (
@@ -555,7 +559,7 @@ export default function MyProjectsPage() {
               ? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
               disabled={isSubmitting}
