@@ -13,10 +13,79 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "DevShowcase - Community Project Showcase",
+const siteConfig = {
+  name: "DevShowcase",
   description:
     "Discover and share amazing community projects built by developers around the world.",
+  url: process.env.NEXTAUTH_URL || "https://dev-showcase.vercel.app",
+  ogImage: "/og-image.png",
+  links: {
+    github: "https://github.com/JaySavani/DevShowcase-HOE-Assignment",
+  },
+};
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  keywords: [
+    "Next.js",
+    "React",
+    "Tailwind CSS",
+    "Developer Showcase",
+    "Community Projects",
+    "Open Source",
+  ],
+  authors: [
+    {
+      name: "DevShowcase Team",
+      url: siteConfig.url,
+    },
+  ],
+  creator: "DevShowcase",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteConfig.url,
+    title: siteConfig.name,
+    description: siteConfig.description,
+    siteName: siteConfig.name,
+    images: [
+      {
+        url: siteConfig.ogImage,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: [siteConfig.ogImage],
+    creator: "@devshowcase",
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-16x16.png",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/site.webmanifest",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export const viewport: Viewport = {
