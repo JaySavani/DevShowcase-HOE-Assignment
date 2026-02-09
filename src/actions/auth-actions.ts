@@ -15,7 +15,6 @@ import {
 } from "@/lib/schemas";
 
 export async function signUpAction(data: SignUpFormValues) {
-  console.log(data);
   try {
     const validatedData = await signUpSchema.parseAsync(data);
 
@@ -23,7 +22,6 @@ export async function signUpAction(data: SignUpFormValues) {
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email },
     });
-    console.log(existingUser);
 
     if (existingUser) {
       return {
