@@ -21,7 +21,7 @@ export const projectSchema = z.object({
   categoryIds: z
     .array(z.string())
     .min(1, "Select at least one category")
-    .max(5, "You can select up to 5 categories"),
+    .max(3, "You can select up to 3 categories"),
 });
 
 export const categorySchema = z.object({

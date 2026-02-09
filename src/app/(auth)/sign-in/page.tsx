@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -10,7 +11,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Code2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { signInAction } from "@/actions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,14 +36,25 @@ export default function SignInPage() {
 
   async function onSubmit(data: SignInFormValues) {
     setIsLoading(true);
-    const result = await signInAction(data);
-    if (result.success) {
-      toast.success("Signed in successfully");
-      router.push("/");
-    } else {
-      toast.error(result.error);
+    try {
+      const result = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error("Invalid email or password");
+      } else {
+        toast.success("Signed in successfully");
+        router.push("/");
+        router.refresh();
+      }
+    } catch {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   return (

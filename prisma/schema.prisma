@@ -25,9 +25,9 @@ model User {
     password String
     role     Role   @default(USER)
 
-    projects  Project[]
-    votes     Vote[]
-    feedbacks Feedback[]
+    projects Project[]
+    votes    Vote[]
+    comments Comment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -47,7 +47,7 @@ model Project {
 
     categories ProjectCategory[]
     votes      Vote[]
-    feedbacks  Feedback[]
+    comments   Comment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -78,7 +78,7 @@ model ProjectCategory {
 
 model Vote {
     id    String @id @default(cuid())
-    value Int // +1 (upvote) or -1 (downvote)
+    value Int // 1 (upvote) or -1 (downvote)
 
     userId    String
     projectId String
@@ -91,8 +91,8 @@ model Vote {
     @@unique([userId, projectId])
 }
 
-model Feedback {
-    id      String
+model Comment {
+    id      String @id @default(cuid())
     content String
 
     userId    String
@@ -102,6 +102,5 @@ model Feedback {
     project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
     createdAt DateTime @default(now())
-
-    @@id([id])
+    updatedAt DateTime @updatedAt
 }
