@@ -74,6 +74,12 @@ export default function MyProjectsPage() {
     totalPages: 0,
     currentPage: 1,
   });
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [search, setSearch] = useState("");
@@ -107,6 +113,9 @@ export default function MyProjectsPage() {
         setProjects(result.data as Project[]);
         if (result.pagination) {
           setPagination(result.pagination);
+        }
+        if (result.statusCounts) {
+          setStatusCounts(result.statusCounts);
         }
       } else {
         toast.error(result.error || "Failed to fetch projects");
@@ -168,13 +177,6 @@ export default function MyProjectsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const statusCounts = {
-    all: pagination.totalCount,
-    pending: 0, // Would need a separate action or count for all statuses
-    approved: 0,
-    rejected: 0,
   };
 
   return (
@@ -333,7 +335,7 @@ export default function MyProjectsPage() {
             ))}
           </div>
         ) : (
-          <Card>
+          <Card className="px-2">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -535,7 +537,7 @@ export default function MyProjectsPage() {
                 title: editingProject.title,
                 description: editingProject.description,
                 githubUrl: editingProject.githubUrl,
-                websiteUrl: editingProject.websiteUrl,
+                websiteUrl: editingProject.websiteUrl || undefined,
                 categoryIds: editingProject.categories.map((c) => c.id),
               }}
               onSubmit={handleEditSubmit}

@@ -164,7 +164,7 @@ export function ProjectForm({
           <Tag className="text-muted-foreground h-4 w-4" />
           Categories
           <span className="text-muted-foreground text-xs font-normal">
-            (select up to 5)
+            (select up to 3)
           </span>
         </Label>
         <CategoryMultiSelect

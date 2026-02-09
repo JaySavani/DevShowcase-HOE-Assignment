@@ -1,18 +1,49 @@
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 
 import authConfig from "./auth.config";
-import { authConfigEdge } from "./auth.config.edge";
+
+const LoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, "Password is required"),
+});
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  ...authConfigEdge,
+  ...authConfig,
+  adapter: PrismaAdapter(prisma),
+  session: { strategy: "jwt" },
+  providers: [
+    Credentials({
+      async authorize(credentials) {
+        const validatedFields = LoginSchema.safeParse(credentials);
+
+        if (validatedFields.success) {
+          const { email, password } = validatedFields.data;
+
+          const user = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          if (!user || !user.password) return null;
+
+          const passwordsMatch = await bcrypt.compare(password, user.password);
+
+          if (passwordsMatch) return user;
+        }
+
+        return null;
+      },
+    }),
+  ],
   callbacks: {
-    ...authConfigEdge.callbacks,
+    ...authConfig.callbacks,
     async jwt({ token, user }) {
-      // First, use the Edge-compatible logic from authConfigEdge
       if (user) {
         token.role = user.role;
         token.sub = user.id;
@@ -21,7 +52,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (token.role) return token;
 
-      // Server-side only: fetch role from DB if missing in token
       if (token.sub) {
         const existingUser = await prisma.user.findUnique({
           where: { id: token.sub },
@@ -35,8 +65,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
   },
-  adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
   trustHost: true,
-  ...authConfig,
 });

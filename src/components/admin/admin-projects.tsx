@@ -242,7 +242,7 @@ export function AdminProjects() {
           <p className="text-muted-foreground text-sm">Loading projects...</p>
         </div>
       ) : paginatedProjects.length > 0 ? (
-        <Card>
+        <Card className="px-2">
           <Table>
             <TableHeader>
               <TableRow>
@@ -452,7 +452,7 @@ export function AdminProjects() {
                 title: editingProject.title,
                 description: editingProject.description,
                 githubUrl: editingProject.githubUrl,
-                websiteUrl: editingProject.websiteUrl,
+                websiteUrl: editingProject.websiteUrl || undefined,
                 categoryIds: editingProject.categories.map((c) => c.id),
               }}
               onSubmit={handleEditSubmit}

@@ -12,9 +12,10 @@ export interface Category {
 export interface Project {
   id: string;
   title: string;
+  slug: string;
   description: string;
   githubUrl: string;
-  websiteUrl: string;
+  websiteUrl: string | null;
   categories: Category[];
   status: ProjectStatus;
   authorName: string;
@@ -22,4 +23,9 @@ export interface Project {
   authorAvatar: string;
   createdAt: string;
   updatedAt: string;
+  stats?: {
+    upvotes: number;
+    downvotes: number;
+    commentCount: number;
+  };
 }
