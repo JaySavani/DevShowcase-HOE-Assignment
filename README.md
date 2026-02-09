@@ -25,7 +25,7 @@
 
 ### Frontend
 
-- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/)
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
 - **UI Components**: [Shadcn UI](https://ui.shadcn.com/) & [Radix UI](https://www.radix-ui.com/)
 - **State/Forms**: [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
@@ -69,8 +69,6 @@ DATABASE_URL=""
 # Generate a secret: openssl rand -base64 32
 AUTH_SECRET=""
 NEXTAUTH_URL="http://localhost:3000"
-
-
 ```
 
 ### 4. Database Migration
@@ -88,6 +86,17 @@ npx prisma db seed
 ```bash
 bun dev
 ```
+
+---
+
+## 🔑 Demo Credentials
+
+To test the platform's features, you can use the following pre-seeded account:
+
+- **Admin Account**:
+  - **Email**: `admin@gmail.com`
+  - **Password**: `Admin123`
+  - **Role**: Full access to the Admin Dashboard (approve/reject projects).
 
 ---
 
