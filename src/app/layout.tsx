@@ -6,6 +6,7 @@ import { Inter } from "next/font/google";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
 
@@ -38,6 +39,7 @@ export default function RootLayout({
           <AuthProvider>
             <SiteHeader />
             <main>{children}</main>
+            <Toaster />
           </AuthProvider>
         </ThemeProvider>
       </body>
